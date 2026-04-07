@@ -1,0 +1,8 @@
+Goal,Correct approach,Column1,Price
+Change price,Update system price,194846101493,
+Change SKU,Update mapping,194846101494,
+Reuse barcode,Reassign mapping,194846101495,
+Avoid reprinting,Keep barcode static,AZ:JWX416ZN4RDFJKSUMBJZNJPRII,
+Encode new ID,Reprint barcode,999000000001,
+marlboro reds,ITEM-028200318527,028200318527,2.00
+Sharpie 0.7mm Rollerball Pen,ITEM-071641171336,071641171336,1.00
