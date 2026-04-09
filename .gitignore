@@ -15,7 +15,6 @@ venv/
 env/
 
 # IDE
-.vscode/
 .idea/
 
 # Temp barcode images (generated at runtime)

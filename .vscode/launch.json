@@ -1,0 +1,23 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "BarcodOmatic Desktop",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/main.py",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "justMyCode": true
+        },
+        {
+            "name": "BarcodOmatic Mobile (Kivy desktop)",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/apk_app/main.py",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}/apk_app",
+            "justMyCode": true
+        }
+    ]
+}
