@@ -1,0 +1,40 @@
+Categories:
+  - System
+
+License: MIT
+AuthorName: Edm4v
+SourceCode: https://github.com/Edm4v/BarcodOmatic
+IssueTracker: https://github.com/Edm4v/BarcodOmatic/issues
+
+AutoName: BarcodOmatic Mobile
+Summary: Retail barcode manager and SKU editor
+
+Description: |-
+  Scan barcodes, look up products via Open Food Facts, and manage internal
+  SKUs, prices, and names in a CSV database. Print GS1-standard Code128
+  barcode labels.
+
+  Features:
+
+  * Scan or type a barcode to look up a product
+  * Fetch product names automatically from Open Food Facts (free, no key)
+  * Assign and edit internal SKU / Item IDs
+  * Set and update prices
+  * Generate and preview Code128 barcode images
+  * Export data to CSV
+
+  All data is stored locally on-device. No accounts or cloud sync required.
+
+Builds:
+  - versionName: '1.0.0'
+    versionCode: 1
+    commit: v1.0.0
+    subdir: apk_app
+    build:
+      - pip3 install --user buildozer cython
+      - buildozer android release
+
+AutoUpdateMode: None
+UpdateCheckMode: None
+CurrentVersion: '1.0.0'
+CurrentVersionCode: 1
