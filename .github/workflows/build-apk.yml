@@ -27,7 +27,26 @@ jobs:
             zlib1g-dev libffi-dev libssl-dev \
             libltdl-dev libgdbm-dev liblzma-dev \
             libncurses5-dev libsqlite3-dev \
-            ccache git unzip
+            ccache git unzip \
+            lib32z1 lib32stdc++6
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android SDK packages
+        run: |
+          yes | sdkmanager --licenses
+          sdkmanager --install \
+            "platform-tools" \
+            "platforms;android-35" \
+            "build-tools;35.0.0"
+
+      - name: Export Android env for Buildozer
+        run: |
+          echo "ANDROID_HOME=${ANDROID_SDK_ROOT}" >> $GITHUB_ENV
+          echo "ANDROID_SDK_ROOT=${ANDROID_SDK_ROOT}" >> $GITHUB_ENV
+          echo "${ANDROID_SDK_ROOT}/build-tools/35.0.0" >> $GITHUB_PATH
+          echo "${ANDROID_SDK_ROOT}/platform-tools" >> $GITHUB_PATH
 
       - name: Cache Buildozer global directory
         uses: actions/cache@v4
