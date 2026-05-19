@@ -8,7 +8,7 @@ version = 1.0.0
 # android.numeric_version is the integer versionCode required by F-Droid and Google Play.
 # Increment by 1 with every release.
 android.numeric_version = 1
-requirements = python3,kivy,python-barcode,pillow,plyer
+requirements = python3,kivy,python-barcode,pillow,plyer,pyjnius
 icon.filename = icon.png
 orientation = portrait
 fullscreen = 0
