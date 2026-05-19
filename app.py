@@ -103,7 +103,7 @@ class MainWindow(QMainWindow):
         self.lookup_btn = QPushButton("Look Up Online")
         self.lookup_btn.setObjectName("lookup_btn")
         self.lookup_btn.setEnabled(False)
-        self.lookup_btn.setToolTip("Search Open Food Facts (free/unlimited) then UPCitemdb (100/day) for this barcode")
+        self.lookup_btn.setToolTip("Search Open Food Facts (free/unlimited), then UPCitemdb (100/day), then NuGet for this barcode")
         self.lookup_btn.clicked.connect(self._lookup_online)
         scan_layout.addRow("", self.lookup_btn)
         root.addWidget(scan_group)
@@ -310,7 +310,7 @@ class MainWindow(QMainWindow):
             self._current_barcode = barcode  # keep for lookup_online
             self.lookup_btn.setEnabled(True)
             self._set_status(
-                f"Not in file: {barcode}  —  click 'Look Up Online' to search Open Food Facts / UPCitemdb.",
+                f"Not in file: {barcode}  —  click 'Look Up Online' to search Open Food Facts / UPCitemdb / NuGet.",
                 "orange",
             )
             return
@@ -431,7 +431,7 @@ class MainWindow(QMainWindow):
         barcode = self._current_barcode or self.barcode_input.text().strip()
         if not barcode:
             return
-        self._set_status("Looking up barcode online (Open Food Facts → UPCitemdb)...", "blue")
+        self._set_status("Looking up barcode online (Open Food Facts → UPCitemdb → NuGet)...", "blue")
         try:
             result = upc_lookup.lookup_upc(barcode)
         except urllib.error.HTTPError as exc:
@@ -447,7 +447,7 @@ class MainWindow(QMainWindow):
             return
 
         if result is None:
-            self._set_status(f"Not found in Open Food Facts or UPCitemdb: {barcode}", "red")
+            self._set_status(f"Not found in Open Food Facts, UPCitemdb, or NuGet: {barcode}", "red")
             return
 
         title = result["title"]
