@@ -1,6 +1,7 @@
 """Tests for data_handler.py."""
 import io
 import os
+import shutil
 import sys
 import tempfile
 import unittest
@@ -343,7 +344,6 @@ class TestGenerateBarcodeImage(unittest.TestCase):
             # clean up temp dir
             parent = os.path.dirname(path)
             if os.path.isdir(parent):
-                import shutil
                 shutil.rmtree(parent, ignore_errors=True)
 
     def test_alphanumeric_barcode(self):
@@ -352,7 +352,6 @@ class TestGenerateBarcodeImage(unittest.TestCase):
             self.assertTrue(os.path.exists(path))
         finally:
             parent = os.path.dirname(path)
-            import shutil
             shutil.rmtree(parent, ignore_errors=True)
 
     def test_file_not_empty(self):
@@ -361,7 +360,6 @@ class TestGenerateBarcodeImage(unittest.TestCase):
             self.assertGreater(os.path.getsize(path), 0)
         finally:
             parent = os.path.dirname(path)
-            import shutil
             shutil.rmtree(parent, ignore_errors=True)
 
 

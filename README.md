@@ -160,6 +160,24 @@ Online lookup tries each source in order and returns the first result found:
 3. **UPCitemdb** — 100 lookups/day on the free tier, broad retail coverage
 4. **barcodelookup.com** — broad retail catalog; set the `BARCODELOOKUP_API_KEY` environment variable with your API key from [barcodelookup.com/api](https://www.barcodelookup.com/api)
 
+To set the API keys before running the app:
+
+**Windows (Command Prompt):**
+```cmd
+set GO_UPC_API_KEY=your_key_here
+set BARCODELOOKUP_API_KEY=your_key_here
+python main.py
+```
+
+**macOS / Linux:**
+```bash
+export GO_UPC_API_KEY=your_key_here
+export BARCODELOOKUP_API_KEY=your_key_here
+python main.py
+```
+
+You can also add these to a `.env` file and load them with a tool like `python-dotenv`, or set them permanently in your OS environment variables settings.
+
 Sources 2 and 4 are skipped automatically if their API key environment variables are not set. If all sources return no result, the barcode will not be auto-added from online lookup.
 
 > **Note:** GS1 (gs1.org) does not provide a public REST API for product lookup — only a paid enterprise batch connection requiring a GS1 membership. The free GS1 lookup is a web form only and cannot be used programmatically.

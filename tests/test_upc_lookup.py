@@ -243,8 +243,8 @@ class TestLookupUpcitemdb(unittest.TestCase):
 class TestLookupBarcodelookup(unittest.TestCase):
 
     def test_no_api_key_returns_none(self):
-        os.environ.pop("BARCODELOOKUP_API_KEY", None)
-        result = upc_lookup._lookup_barcodelookup("0")
+        with patch.dict(os.environ, {}, clear=True):
+            result = upc_lookup._lookup_barcodelookup("0")
         self.assertIsNone(result)
 
     def test_success(self):
@@ -260,6 +260,13 @@ class TestLookupBarcodelookup(unittest.TestCase):
 
     def test_empty_products_returns_none(self):
         payload = {"products": []}
+        with patch.dict(os.environ, {"BARCODELOOKUP_API_KEY": "key"}):
+            with patch("urllib.request.urlopen", return_value=_make_response(payload)):
+                result = upc_lookup._lookup_barcodelookup("0")
+        self.assertIsNone(result)
+
+    def test_empty_title_returns_none(self):
+        payload = {"products": [{"title": "", "brand": "B", "model": "M"}]}
         with patch.dict(os.environ, {"BARCODELOOKUP_API_KEY": "key"}):
             with patch("urllib.request.urlopen", return_value=_make_response(payload)):
                 result = upc_lookup._lookup_barcodelookup("0")

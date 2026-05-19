@@ -17,8 +17,8 @@ def _lookup_open_food_facts(upc: str) -> dict | None:
     """
     url = _OFF_URL.format(upc=upc)
     try:
-        r = urllib.request.urlopen(url, timeout=10)
-        data = json.loads(r.read().decode())
+        with urllib.request.urlopen(url, timeout=10) as r:
+            data = json.loads(r.read().decode())
     except urllib.error.HTTPError:
         return None
     except Exception:
@@ -57,12 +57,14 @@ def _lookup_go_upc(upc: str) -> dict | None:
     url = _GOUPC_URL.format(upc=upc)
     req = urllib.request.Request(url, headers={"Authorization": f"Bearer {api_key}"})
     try:
-        r = urllib.request.urlopen(req, timeout=10)
-        data = json.loads(r.read().decode())
+        with urllib.request.urlopen(req, timeout=10) as r:
+            data = json.loads(r.read().decode())
     except urllib.error.HTTPError as exc:
         if exc.code == 404:
             return None
         raise
+    except OSError:
+        return None
 
     product = data.get("product") or {}
     title = product.get("name", "")
@@ -85,12 +87,14 @@ def _lookup_upcitemdb(upc: str) -> dict | None:
     """
     url = _UPC_URL.format(upc=upc)
     try:
-        r = urllib.request.urlopen(url, timeout=10)
-        data = json.loads(r.read().decode())
+        with urllib.request.urlopen(url, timeout=10) as r:
+            data = json.loads(r.read().decode())
     except urllib.error.HTTPError as exc:
         if exc.code == 404:
             return None
         raise
+    except OSError:
+        return None
 
     items = data.get("items", [])
     if not items:
@@ -119,19 +123,24 @@ def _lookup_barcodelookup(upc: str) -> dict | None:
         return None
     url = _BARCL_URL.format(upc=upc, key=api_key)
     try:
-        r = urllib.request.urlopen(url, timeout=10)
-        data = json.loads(r.read().decode())
+        with urllib.request.urlopen(url, timeout=10) as r:
+            data = json.loads(r.read().decode())
     except urllib.error.HTTPError as exc:
         if exc.code == 404:
             return None
         raise
+    except OSError:
+        return None
 
     products = data.get("products", [])
     if not products:
         return None
     p = products[0]
+    title = p.get("title", "")
+    if not title:
+        return None
     return {
-        "title": p.get("title", ""),
+        "title": title,
         "brand": p.get("brand", ""),
         "model": p.get("model", ""),
         "source": "barcodelookup.com",
