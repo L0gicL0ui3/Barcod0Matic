@@ -120,7 +120,6 @@ class TestLookupGoUpc(unittest.TestCase):
 
     def test_no_api_key_returns_none(self):
         with patch.dict(os.environ, {}, clear=True):
-            os.environ.pop("GO_UPC_API_KEY", None)
             result = upc_lookup._lookup_go_upc("0")
         self.assertIsNone(result)
 

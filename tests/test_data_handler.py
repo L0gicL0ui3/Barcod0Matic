@@ -74,7 +74,7 @@ class TestLoadFileCsv(unittest.TestCase):
         finally:
             os.unlink(path)
 
-    def test_column1_normalised_from_scientific(self):
+    def test_column1_normalized_from_scientific(self):
         # Simulate Excel-exported CSV where long barcodes become floats
         path = self._write_csv("Column1,Goal\n1.94846E+11,Chips\n")
         try:
