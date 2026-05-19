@@ -44,9 +44,12 @@ jobs:
       - name: Build debug APK
         working-directory: apk_app
         run: |
+          # `yes` exits with SIGPIPE once Buildozer stops reading stdin, so keep
+          # pipefail off long enough to capture Buildozer's real exit status.
           set +o pipefail
           yes | buildozer android debug 2>&1 | tee build.log
-          build_status=${PIPESTATUS[1]}
+          pipeline_status=("${PIPESTATUS[@]}")
+          build_status=${pipeline_status[1]}
           set -o pipefail
           echo "--- Build finished ---"
           if [ "$build_status" -ne 0 ]; then
