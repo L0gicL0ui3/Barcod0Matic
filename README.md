@@ -216,4 +216,4 @@ For the smoothest experience, make sure all of these are true:
 
 ## License
 
-Add your preferred license before publishing publicly on GitHub if you want others to reuse or contribute to the project.
+This project is licensed under the MIT License. See `LICENSE` for details.
