@@ -6,7 +6,7 @@ BarcodOmatic is a desktop barcode and internal ID management app built with Pyth
 
 - Scan or type a barcode to find a matching record in a CSV or Excel file
 - Edit product name, internal ID, and price
-- Look up unknown barcodes online using Open Food Facts, UPCitemdb as fallback, and barcodelookup.com as a third option
+- Look up unknown barcodes online using Open Food Facts, Go-UPC, UPCitemdb, and barcodelookup.com
 - Add newly found online products into your data file
 - Generate and print GS1-sized Code128 barcode labels
 - Auto-load a default file from `UPCDirectory/UPCdata.csv`
@@ -153,14 +153,16 @@ The app generates GS1-style Code128 labels sized for reliable retail printing.
 
 ## Online Lookup Requirements
 
-Online lookup depends on:
+Online lookup tries each source in order and returns the first result found:
 
-- Internet access
-- Open Food Facts availability
-- UPCitemdb availability for fallback requests
-- barcodelookup.com as a third fallback (set the `BARCODELOOKUP_API_KEY` environment variable with your API key from [barcodelookup.com/api](https://www.barcodelookup.com/api))
+1. **Open Food Facts** — free, unlimited, best for food/grocery products
+2. **Go-UPC** (go-upc.com) — broad retail catalog; set the `GO_UPC_API_KEY` environment variable with your API key from [go-upc.com](https://go-upc.com) (~150 requests/month free)
+3. **UPCitemdb** — 100 lookups/day on the free tier, broad retail coverage
+4. **barcodelookup.com** — broad retail catalog; set the `BARCODELOOKUP_API_KEY` environment variable with your API key from [barcodelookup.com/api](https://www.barcodelookup.com/api)
 
-If all three services return no result, the barcode will not be auto-added from online lookup.
+Sources 2 and 4 are skipped automatically if their API key environment variables are not set. If all sources return no result, the barcode will not be auto-added from online lookup.
+
+> **Note:** GS1 (gs1.org) does not provide a public REST API for product lookup — only a paid enterprise batch connection requiring a GS1 membership. The free GS1 lookup is a web form only and cannot be used programmatically.
 
 ## How to Use
 

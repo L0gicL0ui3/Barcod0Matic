@@ -4,6 +4,7 @@ import urllib.error
 import urllib.request
 
 _OFF_URL = "https://world.openfoodfacts.org/api/v0/product/{upc}.json"
+_GOUPC_URL = "https://go-upc.com/api/v1/code/{upc}"
 _UPC_URL = "https://api.upcitemdb.com/prod/trial/lookup?upc={upc}"
 _BARCL_URL = "https://api.barcodelookup.com/v3/products?barcode={upc}&key={key}"
 
@@ -39,6 +40,39 @@ def _lookup_open_food_facts(upc: str) -> dict | None:
         "brand": brand,
         "model": "",
         "source": "Open Food Facts",
+    }
+
+
+def _lookup_go_upc(upc: str) -> dict | None:
+    """Query Go-UPC (go-upc.com) for a UPC/barcode.
+
+    Requires the GO_UPC_API_KEY environment variable.
+    Returns a dict with keys: title, brand, model, source
+    Returns None if not found or if no API key is configured.
+    Raises urllib.error.HTTPError on 429 (rate limit) or other non-404 errors.
+    """
+    api_key = os.environ.get("GO_UPC_API_KEY", "")
+    if not api_key:
+        return None
+    url = _GOUPC_URL.format(upc=upc)
+    req = urllib.request.Request(url, headers={"Authorization": f"Bearer {api_key}"})
+    try:
+        r = urllib.request.urlopen(req, timeout=10)
+        data = json.loads(r.read().decode())
+    except urllib.error.HTTPError as exc:
+        if exc.code == 404:
+            return None
+        raise
+
+    product = data.get("product") or {}
+    title = product.get("name", "")
+    if not title:
+        return None
+    return {
+        "title": title,
+        "brand": product.get("brand", ""),
+        "model": "",
+        "source": "Go-UPC",
     }
 
 
@@ -105,17 +139,22 @@ def _lookup_barcodelookup(upc: str) -> dict | None:
 
 
 def lookup_upc(upc: str) -> dict | None:
-    """Look up a UPC/barcode using Open Food Facts, then UPCitemdb, then barcodelookup.com.
+    """Look up a UPC/barcode through a chain of sources.
 
-    Open Food Facts: free, unlimited, best for food/grocery products.
-    UPCitemdb: 100 lookups/day free tier, covers broader retail categories.
-    barcodelookup.com: broad retail catalog; requires BARCODELOOKUP_API_KEY env var.
+    Chain order (first hit wins):
+      1. Open Food Facts — free, unlimited, best for food/grocery products.
+      2. Go-UPC (go-upc.com) — broad catalog; requires GO_UPC_API_KEY env var (~150 req/month free).
+      3. UPCitemdb — 100 lookups/day free tier, covers broad retail categories.
+      4. barcodelookup.com — broad retail catalog; requires BARCODELOOKUP_API_KEY env var.
 
     Returns a dict with keys: title, brand, model, source
     Returns None if not found in any database.
     Raises urllib.error.HTTPError on rate-limit (429) or server errors from paid APIs.
     """
     result = _lookup_open_food_facts(upc)
+    if result is not None:
+        return result
+    result = _lookup_go_upc(upc)
     if result is not None:
         return result
     result = _lookup_upcitemdb(upc)
