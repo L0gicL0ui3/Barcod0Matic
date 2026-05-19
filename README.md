@@ -18,8 +18,8 @@ To run the app reliably, you should have the following installed:
 
 ### Required software
 
-- Windows 10 or Windows 11
-- Python 3.10 or newer
+- Windows 10 or 11, macOS 11+, or any modern Linux distribution
+- Python 3.10 or newer (3.12 recommended)
 - `pip` for installing Python packages
 
 ### Required Python packages
@@ -175,7 +175,7 @@ If both services return no result, the barcode will not be auto-added from onlin
 
 ### App will not start
 
-- Confirm Python is installed
+- Confirm Python 3.10 or newer is installed (`python --version` or `python3 --version`)
 - Confirm dependencies were installed from `requirements.txt`
 - Run from a terminal to see any startup errors
 
@@ -207,7 +207,7 @@ If the spreadsheet is open in Excel, VS Code, or another tool, Windows may lock 
 
 For the smoothest experience, make sure all of these are true:
 
-- Python 3.10+ is installed
+- Python 3.10+ is installed (3.12 recommended; the app will show a clear error if your Python is too old)
 - All dependencies from `requirements.txt` are installed
 - Your data file includes `Goal`, `Correct approach`, and `Column1`
 - Your barcode scanner is configured to send an Enter key after each scan

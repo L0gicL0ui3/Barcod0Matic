@@ -136,6 +136,10 @@ def save_file(df: pd.DataFrame, path: str) -> None:
                 f.seek(0)
                 f.write(csv_bytes)
                 f.truncate()
+        except FileNotFoundError:
+            # File doesn't exist yet — create it fresh
+            with open(path, "wb") as f:
+                f.write(csv_bytes)
         except PermissionError as exc:
             raise FileLockError(
                 f"Cannot save — file is locked by another program.\n"

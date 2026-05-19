@@ -344,6 +344,9 @@ class MainWindow(QMainWindow):
         if self.df is None:
             self._set_status("No file loaded.", "orange")
             return
+        if self.file_path is None:
+            self._set_status("No file path set. Load a file first.", "red")
+            return
         if not self._current_barcode:
             self._set_status("No barcode selected. Scan a barcode first.", "orange")
             return
@@ -461,6 +464,9 @@ class MainWindow(QMainWindow):
         if self.df is None:
             self._set_status("Load a file first before adding a new product.", "orange")
             return
+        if self.file_path is None:
+            self._set_status("No file path set. Load a file first.", "red")
+            return
 
         reply = QMessageBox.question(
             self,
@@ -545,6 +551,8 @@ class MainWindow(QMainWindow):
             return None
 
         try:
+            if self.df is None:
+                raise ValueError("No data loaded to save.")
             dh.save_file(self.df, path)
             self.file_label.setText(path)
             self._set_status(f"Saved to: {path}", "green")
