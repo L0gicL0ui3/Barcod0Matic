@@ -18,8 +18,8 @@ To run the app reliably, you should have the following installed:
 
 ### Required software
 
-- Windows 10 or Windows 11
-- Python 3.10 or newer
+- Windows 10 or 11, macOS 11+, or any modern Linux distribution
+- Python 3.10 or newer (3.12 recommended)
 - `pip` for installing Python packages
 
 ### Required Python packages
@@ -175,7 +175,7 @@ If both services return no result, the barcode will not be auto-added from onlin
 
 ### App will not start
 
-- Confirm Python is installed
+- Confirm Python 3.10 or newer is installed (`python --version` or `python3 --version`)
 - Confirm dependencies were installed from `requirements.txt`
 - Run from a terminal to see any startup errors
 
@@ -207,12 +207,49 @@ If the spreadsheet is open in Excel, VS Code, or another tool, Windows may lock 
 
 For the smoothest experience, make sure all of these are true:
 
-- Python 3.10+ is installed
+- Python 3.10+ is installed (3.12 recommended; the app will show a clear error if your Python is too old)
 - All dependencies from `requirements.txt` are installed
 - Your data file includes `Goal`, `Correct approach`, and `Column1`
 - Your barcode scanner is configured to send an Enter key after each scan
 - Your printer is installed if you want labels
 - Your default data file is placed in `UPCDirectory/UPCdata.csv` if you want auto-load on startup
+
+## Mobile App — Import and Export UPC Data
+
+The Android app (`apk_app/`) includes **Import CSV** and **Export / Share** buttons so every user can bring in their own UPC numbers and back up their data.
+
+### Import CSV from your device
+
+1. Tap **Import CSV**.
+2. The system file picker opens. Navigate to your CSV file and tap it.
+3. A confirmation dialog shows how many records will be added and whether any barcodes already exist in your data.
+   - **Skip Duplicates** — adds only new barcodes, leaves your existing records untouched.
+   - **Overwrite Existing** — replaces matching records with the values from the imported file.
+4. Tap the action you want. The app saves immediately after merging.
+
+Your CSV must have at least a `Column1` column (barcode values). The other columns are optional:
+
+| Column | Required | Purpose |
+|---|---|---|
+| `Column1` | Yes | Barcode / UPC number |
+| `Goal` | No | Product name or description |
+| `Correct approach` | No | Internal SKU / ID |
+| `Price` | No | Product price |
+
+Rows with a missing barcode or an invalid price are skipped or corrected automatically, and a count of any issues is shown before you confirm.
+
+### Export / Share your UPC data
+
+1. Tap **Export / Share**.
+2. The app writes `UPCdata_export.csv` to the app-specific external storage folder:
+   `Android/data/com.edm4v.barcodomaticmobile/files/`
+   This folder is accessible from any file manager app without extra permissions.
+3. On Android, the share sheet opens so you can send the CSV by email, cloud storage, messaging, or any app you choose.
+4. If the share sheet is unavailable, the status bar shows the full path to the exported file.
+
+> **Tip:** The app-specific external storage folder can be found in your file manager under
+> `Android/data/<your-package-name>/files/`. The package name is set in `apk_app/buildozer.spec`
+> as `package.domain.package.name` (for example `com.edm4v.barcodomaticmobile`).
 
 ## License
 

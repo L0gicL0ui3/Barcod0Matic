@@ -1,6 +1,34 @@
 import os
 import sys
 
+# Enforce Python 3.10+ before any third-party imports.
+# The type-hint syntax used throughout the app (e.g. `dict | None`) is only
+# valid in Python 3.10+.  Give users a clear message instead of a cryptic
+# TypeError on older interpreters.
+if sys.version_info < (3, 10):
+    print(
+        f"ERROR: BarcodOmatic requires Python 3.10 or newer.\n"
+        f"You have Python {sys.version_info.major}.{sys.version_info.minor}.\n"
+        f"Download Python 3.10+ from https://python.org/downloads/",
+        file=sys.stderr,
+    )
+    # Try to show a GUI dialog if possible (tkinter ships with Python)
+    try:
+        import tkinter
+        import tkinter.messagebox
+        root = tkinter.Tk()
+        root.withdraw()
+        tkinter.messagebox.showerror(
+            "Python Too Old",
+            f"BarcodOmatic requires Python 3.10 or newer.\n"
+            f"You have Python {sys.version_info.major}.{sys.version_info.minor}.\n\n"
+            f"Download the latest Python from:\nhttps://python.org/downloads/",
+        )
+        root.destroy()
+    except Exception:
+        pass
+    sys.exit(1)
+
 # Ensure the app directory is always on sys.path regardless of how the
 # script is launched (double-click, Start-Process, IDE, etc.)
 _APP_DIR = os.path.dirname(os.path.abspath(__file__))

@@ -3,6 +3,7 @@
   "extraPaths": [
     "C:/Users/Edm4v/AppData/Local/Python/pythoncore-3.14-64/Lib/site-packages"
   ],
+  "reportMissingImports": "none",
   "reportMissingModuleSource": "none",
   "exclude": ["apk_app"]
 }

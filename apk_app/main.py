@@ -1,4 +1,5 @@
 import csv
+import io
 import json
 import os
 import re
@@ -50,6 +51,15 @@ class BarcodOmaticMobile(BoxLayout):
         top_buttons.add_widget(load_btn)
         top_buttons.add_widget(save_btn)
         self.add_widget(top_buttons)
+
+        import_export_buttons = BoxLayout(size_hint_y=None, height=42, spacing=8)
+        import_btn = Button(text="Import CSV")
+        import_btn.bind(on_press=lambda *_: self.import_csv_from_device())
+        export_btn = Button(text="Export / Share")
+        export_btn.bind(on_press=lambda *_: self.export_csv_to_device())
+        import_export_buttons.add_widget(import_btn)
+        import_export_buttons.add_widget(export_btn)
+        self.add_widget(import_export_buttons)
 
         self.barcode_input = TextInput(hint_text="Scan or type barcode", multiline=False, size_hint_y=None, height=40)
         self.add_widget(self.barcode_input)
@@ -258,6 +268,277 @@ class BarcodOmaticMobile(BoxLayout):
             if m:
                 max_id = max(max_id, int(m.group(1)))
         return max_id + 1
+
+    # ------------------------------------------------------------------
+    # CSV import from device
+    # ------------------------------------------------------------------
+
+    def import_csv_from_device(self):
+        """Open the system file picker so the user can choose a CSV to import."""
+        try:
+            from plyer import filechooser
+            filechooser.open_file(
+                on_selection=self._on_import_file_selected,
+                filters=["*.csv"],
+                title="Select UPC CSV to Import",
+            )
+        except Exception as exc:
+            self.set_status(f"File picker unavailable: {exc}")
+
+    def _on_import_file_selected(self, selection):
+        """Callback from the file picker; runs on the main thread."""
+        if not selection:
+            return
+        path = selection[0]
+        try:
+            content = self._read_file_content(path)
+            new_records, duplicates, errors = self._parse_import_csv(content)
+        except Exception as exc:
+            self.set_status(f"Import error: {exc}")
+            return
+        if not new_records:
+            msg = "No valid rows found in the selected file."
+            if errors:
+                msg += f" ({len(errors)} issue(s) detected)"
+            self.set_status(msg)
+            return
+        self._confirm_import(new_records, duplicates, errors)
+
+    def _read_file_content(self, path):
+        """Return the text content of a file path or Android content:// URI."""
+        if path.startswith("content://"):
+            return self._read_content_uri(path)
+        with open(path, "r", newline="", encoding="utf-8") as f:
+            return f.read()
+
+    def _read_content_uri(self, uri_string):
+        """Read text from an Android content:// URI via the Java ContentResolver."""
+        try:
+            from jnius import autoclass  # provided by python-for-android
+            PythonActivity = autoclass("org.kivy.android.PythonActivity")
+            Uri = autoclass("android.net.Uri")
+            BufferedReader = autoclass("java.io.BufferedReader")
+            InputStreamReader = autoclass("java.io.InputStreamReader")
+            activity = PythonActivity.mActivity
+            uri = Uri.parse(uri_string)
+            stream = activity.getContentResolver().openInputStream(uri)
+            reader = BufferedReader(InputStreamReader(stream))
+            lines = []
+            line = reader.readLine()
+            while line is not None:
+                lines.append(line)
+                line = reader.readLine()
+            reader.close()
+            return "\n".join(lines)
+        except Exception as exc:
+            raise OSError(f"Could not read content URI: {exc}") from exc
+
+    def _parse_import_csv(self, content):
+        """Validate CSV text. Returns (new_records, duplicates, errors).
+
+        new_records  -- list of dicts ready to merge (valid rows only)
+        duplicates   -- subset of new_records whose Column1 already exists locally
+        errors       -- human-readable strings describing skipped/adjusted rows
+        """
+        try:
+            reader = csv.DictReader(io.StringIO(content))
+            fieldnames = reader.fieldnames or []
+        except Exception as exc:
+            raise ValueError(f"Could not parse CSV: {exc}") from exc
+
+        if "Column1" not in fieldnames:
+            raise ValueError(
+                "CSV must contain a 'Column1' column (barcode values). "
+                "Check that the file uses the expected format."
+            )
+
+        new_records = []
+        errors = []
+        seen_in_import = set()
+
+        for i, row in enumerate(reader, start=2):  # row 1 is the header
+            barcode = self.normalize_barcode(row.get("Column1", ""))
+            if not barcode:
+                errors.append(f"Row {i}: missing barcode (Column1) -- skipped")
+                continue
+            if barcode in seen_in_import:
+                errors.append(
+                    f"Row {i}: barcode {barcode} appears more than once in this file -- skipped"
+                )
+                continue
+            seen_in_import.add(barcode)
+
+            price_raw = row.get("Price", "")
+            price = self.validate_price(price_raw)
+            if price is None:
+                errors.append(
+                    f"Row {i}: invalid price '{price_raw}' for barcode {barcode} -- cleared"
+                )
+                price = ""
+
+            new_records.append(
+                {
+                    "Goal": row.get("Goal", "").strip(),
+                    "Correct approach": row.get("Correct approach", "").strip(),
+                    "Column1": barcode,
+                    "Price": price,
+                }
+            )
+
+        existing_barcodes = {
+            self.normalize_barcode(r.get("Column1", "")) for r in self.records
+        }
+        duplicates = [r for r in new_records if r["Column1"] in existing_barcodes]
+        return new_records, duplicates, errors
+
+    @mainthread
+    def _confirm_import(self, new_records, duplicates, errors):
+        """Show a confirmation popup before committing imported records."""
+        lines = [f"{len(new_records)} record(s) ready to import."]
+        if duplicates:
+            lines.append(f"{len(duplicates)} barcode(s) already exist in your data.")
+        if errors:
+            lines.append(f"{len(errors)} row(s) had issues and were adjusted or skipped.")
+
+        content = BoxLayout(orientation="vertical", spacing=8, padding=8)
+        msg = Label(
+            text="\n".join(lines),
+            size_hint_y=None,
+            height=80,
+            halign="center",
+            valign="top",
+        )
+        msg.bind(size=lambda inst, val: setattr(inst, "text_size", val))
+        content.add_widget(msg)
+
+        btn_row = BoxLayout(size_hint_y=None, height=42, spacing=8)
+        popup = Popup(title="Import CSV", content=content, size_hint=(0.9, 0.55))
+
+        if duplicates:
+            skip_btn = Button(text="Skip Duplicates")
+            skip_btn.bind(
+                on_press=lambda *_: [
+                    self._do_import(new_records, overwrite=False),
+                    popup.dismiss(),
+                ]
+            )
+            overwrite_btn = Button(text="Overwrite Existing")
+            overwrite_btn.bind(
+                on_press=lambda *_: [
+                    self._do_import(new_records, overwrite=True),
+                    popup.dismiss(),
+                ]
+            )
+            btn_row.add_widget(skip_btn)
+            btn_row.add_widget(overwrite_btn)
+        else:
+            import_all_btn = Button(text="Import All")
+            import_all_btn.bind(
+                on_press=lambda *_: [
+                    self._do_import(new_records, overwrite=False),
+                    popup.dismiss(),
+                ]
+            )
+            btn_row.add_widget(import_all_btn)
+
+        cancel_btn = Button(text="Cancel")
+        cancel_btn.bind(on_press=popup.dismiss)
+        btn_row.add_widget(cancel_btn)
+        content.add_widget(btn_row)
+        popup.open()
+
+    def _do_import(self, new_records, overwrite=False):
+        """Merge validated records into self.records and persist."""
+        existing_map = {}
+        for i, row in enumerate(self.records):
+            bc = self.normalize_barcode(row.get("Column1", ""))
+            if bc:
+                existing_map[bc] = i
+
+        added = 0
+        updated = 0
+        skipped = 0
+        for record in new_records:
+            bc = record["Column1"]
+            if bc in existing_map:
+                if overwrite:
+                    self.records[existing_map[bc]] = record
+                    updated += 1
+                else:
+                    skipped += 1
+            else:
+                self.records.append(record)
+                existing_map[bc] = len(self.records) - 1
+                added += 1
+
+        self.save_csv()
+        parts = [f"Import done: {added} added"]
+        if updated:
+            parts.append(f"{updated} updated")
+        if skipped:
+            parts.append(f"{skipped} skipped")
+        self.set_status(", ".join(parts))
+
+    # ------------------------------------------------------------------
+    # CSV export / share
+    # ------------------------------------------------------------------
+
+    def export_csv_to_device(self):
+        """Write a CSV export and open the Android share sheet (or show the path)."""
+        if not self.records:
+            self.set_status("No records to export")
+            return
+
+        headers = ["Goal", "Correct approach", "Column1", "Price"]
+        buf = io.StringIO()
+        writer = csv.DictWriter(buf, fieldnames=headers, extrasaction="ignore")
+        writer.writeheader()
+        writer.writerows(self.records)
+        csv_text = buf.getvalue()
+
+        # Determine the best export directory.
+        export_dir = self._external_app_files_dir()
+        if export_dir:
+            os.makedirs(export_dir, exist_ok=True)
+            export_path = os.path.join(export_dir, "UPCdata_export.csv")
+        else:
+            app = App.get_running_app()
+            export_path = os.path.join(app.user_data_dir, "UPCdata_export.csv")
+
+        try:
+            with open(export_path, "w", newline="", encoding="utf-8") as f:
+                f.write(csv_text)
+        except Exception as exc:
+            self.set_status(f"Export write failed: {exc}")
+            return
+
+        # Try to open the platform share sheet so the user can send the CSV.
+        # The text/CSV content is passed directly because Kivy apps on Android
+        # require FileProvider configuration for true file attachments; sharing
+        # as text works across all share targets without that setup.
+        try:
+            from plyer import share as plyer_share
+            plyer_share.share(
+                title="BarcodOmatic UPC Export",
+                text=csv_text,
+            )
+        except Exception:
+            self.set_status(f"Exported {len(self.records)} records to: {export_path}")
+
+    def _external_app_files_dir(self):
+        """Return the app-specific external storage path (no permission needed on API 19+).
+
+        Returns None if this is not an Android environment.
+        """
+        try:
+            from jnius import autoclass
+            PythonActivity = autoclass("org.kivy.android.PythonActivity")
+            ext = PythonActivity.mActivity.getExternalFilesDir(None)
+            if ext is not None:
+                return ext.getPath()
+        except Exception:
+            pass
+        return None
 
     def lookup_online(self):
         barcode = self.normalize_barcode(self.current_barcode or self.barcode_input.text)
