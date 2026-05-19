@@ -35,6 +35,16 @@ jobs:
           path: ./artifacts/*.nupkg
           retention-days: 30
 
+      - name: Select package to publish
+        id: package
+        run: |
+          PACKAGE_FILE="$(find ./artifacts -maxdepth 1 -type f -name 'Barcod0Matic.*.nupkg' ! -name '*.snupkg' | head -n1)"
+          if [ -z "$PACKAGE_FILE" ]; then
+            echo "No package found to publish."
+            exit 1
+          fi
+          echo "path=$PACKAGE_FILE" >> "$GITHUB_OUTPUT"
+
       - name: Publish to NuGet.org
         if: startsWith(github.ref, 'refs/tags/v')
-        run: dotnet nuget push ./artifacts/*.nupkg --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
+        run: dotnet nuget push "${{ steps.package.outputs.path }}" --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate

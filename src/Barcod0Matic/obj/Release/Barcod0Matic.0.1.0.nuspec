@@ -1,0 +1,24 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2012/06/nuspec.xsd">
+  <metadata>
+    <id>Barcod0Matic</id>
+    <version>0.1.0</version>
+    <authors>L0gicL0ui3</authors>
+    <license type="expression">MIT</license>
+    <licenseUrl>https://licenses.nuget.org/MIT</licenseUrl>
+    <icon>icon.png</icon>
+    <readme>README.md</readme>
+    <projectUrl>https://github.com/L0gicL0ui3/Barcod0Matic</projectUrl>
+    <description>Barcode and internal ID management tooling package scaffold for Barcod0Matic.</description>
+    <tags>barcode inventory utility</tags>
+    <repository type="git" url="https://github.com/L0gicL0ui3/Barcod0Matic" commit="23d29c15ccbdf1059eef604307a587c9bea5663d" />
+    <dependencies>
+      <group targetFramework="net8.0" />
+    </dependencies>
+  </metadata>
+  <files>
+    <file src="/home/runner/work/Barcod0Matic/Barcod0Matic/src/Barcod0Matic/bin/Release/net8.0/Barcod0Matic.dll" target="lib/net8.0/Barcod0Matic.dll" />
+    <file src="/home/runner/work/Barcod0Matic/Barcod0Matic/README.md" target="/README.md" />
+    <file src="/home/runner/work/Barcod0Matic/Barcod0Matic/icon.png" target="/icon.png" />
+  </files>
+</package>

@@ -1,0 +1,23 @@
+{
+  "runtimeTarget": {
+    "name": ".NETCoreApp,Version=v8.0",
+    "signature": ""
+  },
+  "compilationOptions": {},
+  "targets": {
+    ".NETCoreApp,Version=v8.0": {
+      "Barcod0Matic/0.1.0": {
+        "runtime": {
+          "Barcod0Matic.dll": {}
+        }
+      }
+    }
+  },
+  "libraries": {
+    "Barcod0Matic/0.1.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    }
+  }
+}
