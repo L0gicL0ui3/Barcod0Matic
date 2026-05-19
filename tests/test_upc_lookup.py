@@ -179,6 +179,12 @@ class TestLookupGoUpc(unittest.TestCase):
         self.assertIn("Authorization", req.headers)
         self.assertEqual(req.headers["Authorization"], "Bearer secret123")
 
+    def test_network_error_returns_none(self):
+        with patch.dict(os.environ, {"GO_UPC_API_KEY": "key"}):
+            with patch("urllib.request.urlopen", side_effect=OSError("timeout")):
+                result = upc_lookup._lookup_go_upc("0")
+        self.assertIsNone(result)
+
 
 # ---------------------------------------------------------------------------
 # _lookup_upcitemdb
@@ -243,8 +249,8 @@ class TestLookupUpcitemdb(unittest.TestCase):
 class TestLookupBarcodelookup(unittest.TestCase):
 
     def test_no_api_key_returns_none(self):
-        os.environ.pop("BARCODELOOKUP_API_KEY", None)
-        result = upc_lookup._lookup_barcodelookup("0")
+        with patch.dict(os.environ, {}, clear=True):
+            result = upc_lookup._lookup_barcodelookup("0")
         self.assertIsNone(result)
 
     def test_success(self):
@@ -277,6 +283,32 @@ class TestLookupBarcodelookup(unittest.TestCase):
                 with self.assertRaises(urllib.error.HTTPError) as ctx:
                     upc_lookup._lookup_barcodelookup("0")
         self.assertEqual(ctx.exception.code, 429)
+
+    def test_missing_products_key_returns_none(self):
+        payload = {}  # no "products" key
+        with patch.dict(os.environ, {"BARCODELOOKUP_API_KEY": "key"}):
+            with patch("urllib.request.urlopen", return_value=_make_response(payload)):
+                result = upc_lookup._lookup_barcodelookup("0")
+        self.assertIsNone(result)
+
+    def test_500_raises(self):
+        with patch.dict(os.environ, {"BARCODELOOKUP_API_KEY": "key"}):
+            with patch("urllib.request.urlopen", side_effect=_make_http_error(500)):
+                with self.assertRaises(urllib.error.HTTPError):
+                    upc_lookup._lookup_barcodelookup("0")
+
+    def test_empty_title_returns_none(self):
+        payload = {"products": [{"title": "", "brand": "B", "model": "M"}]}
+        with patch.dict(os.environ, {"BARCODELOOKUP_API_KEY": "key"}):
+            with patch("urllib.request.urlopen", return_value=_make_response(payload)):
+                result = upc_lookup._lookup_barcodelookup("0")
+        self.assertIsNone(result)
+
+    def test_network_error_returns_none(self):
+        with patch.dict(os.environ, {"BARCODELOOKUP_API_KEY": "key"}):
+            with patch("urllib.request.urlopen", side_effect=OSError("timeout")):
+                result = upc_lookup._lookup_barcodelookup("0")
+        self.assertIsNone(result)
 
 
 # ---------------------------------------------------------------------------

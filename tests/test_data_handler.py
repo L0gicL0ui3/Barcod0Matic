@@ -1,9 +1,11 @@
 """Tests for data_handler.py."""
 import io
+import math
 import os
 import sys
 import tempfile
 import unittest
+import unittest.mock
 
 import pandas as pd
 
@@ -75,13 +77,12 @@ class TestLoadFileCsv(unittest.TestCase):
             os.unlink(path)
 
     def test_column1_normalized_from_scientific(self):
-        # Simulate Excel-exported CSV where long barcodes become floats
+        # Simulate Excel-exported CSV where long barcodes become scientific notation strings
         path = self._write_csv("Column1,Goal\n1.94846E+11,Chips\n")
         try:
             df = data_handler.load_file(path)
-            # The value is loaded as string "1.94846E+11"; _normalize_barcode leaves
-            # non-float strings as-is (strip only), so the raw value is preserved.
-            self.assertEqual(df["Column1"].iloc[0], "1.94846E+11")
+            # _normalize_barcode now converts string scientific notation to a plain integer string
+            self.assertEqual(df["Column1"].iloc[0], "194846000000")
         finally:
             os.unlink(path)
 
@@ -122,11 +123,8 @@ class TestLoadFileExcel(unittest.TestCase):
         path = self._make_excel(df)
         try:
             loaded = data_handler.load_file(path)
-            # After dtype=str read the value will be "194846000000.0";
-            # _normalize_barcode converts float strings via float→int path only
-            # when the Python type is float; here it's already a string.
-            # The key assertion is that it is not NaN and not empty.
-            self.assertNotEqual(loaded["Column1"].iloc[0], "")
+            # _normalize_barcode now converts "194846000000.0" string to "194846000000"
+            self.assertEqual(loaded["Column1"].iloc[0], "194846000000")
         finally:
             os.unlink(path)
 
@@ -260,6 +258,21 @@ class TestAddRow(unittest.TestCase):
         _ = data_handler.add_row(df, "111", "Dup", "D")
         self.assertEqual(len(df), 3)
 
+    def test_add_row_to_empty_dataframe(self):
+        df = pd.DataFrame()
+        result = data_handler.add_row(df, "001", "Widget", "W001")
+        self.assertEqual(len(result), 1)
+        self.assertIn("Column1", result.columns)
+        self.assertEqual(result["Column1"].iloc[0], "001")
+
+    def test_add_row_fills_price_with_nan_when_column_exists(self):
+        df = _make_df()  # has a Price column
+        new_df = data_handler.add_row(df, "999", "Widget", "W999")
+        idx = data_handler.find_by_barcode(new_df, "999")
+        price_val = new_df.at[idx, "Price"]
+        # pd.concat fills missing columns with NaN for new rows
+        self.assertTrue(price_val is None or (isinstance(price_val, float) and math.isnan(price_val)))
+
 
 # ---------------------------------------------------------------------------
 # save_file — CSV
@@ -363,6 +376,36 @@ class TestGenerateBarcodeImage(unittest.TestCase):
             parent = os.path.dirname(path)
             import shutil
             shutil.rmtree(parent, ignore_errors=True)
+
+
+# ---------------------------------------------------------------------------
+# save_file — FileLockError
+# ---------------------------------------------------------------------------
+
+class TestSaveFileFileLockError(unittest.TestCase):
+
+    def test_csv_permission_error_raises_file_lock_error(self):
+        df = _make_df()
+        fd, path = tempfile.mkstemp(suffix=".csv")
+        os.close(fd)
+        try:
+            with unittest.mock.patch("builtins.open", side_effect=PermissionError("locked")):
+                with self.assertRaises(data_handler.FileLockError):
+                    data_handler.save_file(df, path)
+        finally:
+            os.unlink(path)
+
+    def test_xlsx_permission_error_raises_file_lock_error(self):
+        df = _make_df()
+        fd, path = tempfile.mkstemp(suffix=".xlsx")
+        os.close(fd)
+        try:
+            with unittest.mock.patch("os.replace", side_effect=PermissionError("locked")):
+                with self.assertRaises(data_handler.FileLockError):
+                    data_handler.save_file(df, path)
+        finally:
+            if os.path.exists(path):
+                os.unlink(path)
 
 
 if __name__ == "__main__":

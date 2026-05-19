@@ -63,6 +63,8 @@ def _lookup_go_upc(upc: str) -> dict | None:
         if exc.code == 404:
             return None
         raise
+    except OSError:
+        return None
 
     product = data.get("product") or {}
     title = product.get("name", "")
@@ -125,13 +127,18 @@ def _lookup_barcodelookup(upc: str) -> dict | None:
         if exc.code == 404:
             return None
         raise
+    except OSError:
+        return None
 
     products = data.get("products", [])
     if not products:
         return None
     p = products[0]
+    title = p.get("title", "")
+    if not title:
+        return None
     return {
-        "title": p.get("title", ""),
+        "title": title,
         "brand": p.get("brand", ""),
         "model": p.get("model", ""),
         "source": "barcodelookup.com",

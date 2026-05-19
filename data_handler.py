@@ -12,7 +12,20 @@ def _normalize_barcode(value) -> str:
         return ""
     if isinstance(value, float):
         return str(int(value))
-    return str(value).strip()
+    s = str(value).strip()
+    # Handle string scientific notation (e.g. "1.94846E+11") and float strings (e.g. "194846000000.0")
+    # For ".0" strings, skip conversion if the string starts with "0" to preserve leading-zero barcodes.
+    # Scientific notation is always converted regardless of leading character.
+    has_sci = "e" in s.lower()
+    has_dot_zero = s.endswith(".0")
+    if has_sci or (has_dot_zero and not s.startswith("0")):
+        try:
+            f = float(s)
+            if f == int(f):
+                return str(int(f))
+        except (ValueError, OverflowError):
+            pass
+    return s
 
 
 def load_file(path: str) -> pd.DataFrame:
