@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+
+    <PackageId>Barcod0Matic</PackageId>
+    <Version>0.1.0</Version>
+    <Authors>L0gicL0ui3</Authors>
+    <Company>L0gicL0ui3</Company>
+    <Description>Barcode and internal ID management tooling package scaffold for Barcod0Matic.</Description>
+    <PackageTags>barcode;inventory;utility</PackageTags>
+    <RepositoryUrl>https://github.com/L0gicL0ui3/Barcod0Matic</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageProjectUrl>https://github.com/L0gicL0ui3/Barcod0Matic</PackageProjectUrl>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageIcon>icon.png</PackageIcon>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="..\..\README.md" Pack="true" PackagePath="\" Link="README.md" />
+    <None Include="..\..\icon.png" Pack="true" PackagePath="\" Link="icon.png" />
+  </ItemGroup>
+</Project>

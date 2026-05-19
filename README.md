@@ -214,6 +214,38 @@ For the smoothest experience, make sure all of these are true:
 - Your printer is installed if you want labels
 - Your default data file is placed in `UPCDirectory/UPCdata.csv` if you want auto-load on startup
 
+## NuGet Packaging (Starter Setup)
+
+This repository now includes a starter NuGet package project at:
+
+- `src/Barcod0Matic/Barcod0Matic.csproj`
+
+### Versioning
+
+- Update the `<Version>` in `src/Barcod0Matic/Barcod0Matic.csproj` for each release.
+- Use a Git tag like `v0.1.0` to trigger publish workflow.
+
+### Pack locally
+
+From the repository root:
+
+```bash
+dotnet restore src/Barcod0Matic/Barcod0Matic.csproj
+dotnet pack src/Barcod0Matic/Barcod0Matic.csproj -c Release -o ./artifacts
+```
+
+### Push locally to NuGet.org
+
+```bash
+dotnet nuget push ./artifacts/*.nupkg --api-key "<YOUR_NUGET_API_KEY>" --source https://api.nuget.org/v3/index.json
+```
+
+### GitHub Actions publish
+
+- Workflow file: `.github/workflows/publish-nuget.yml`
+- Triggered on tags matching `v*`
+- Requires repository secret: `NUGET_API_KEY`
+
 ## License
 
 Add your preferred license before publishing publicly on GitHub if you want others to reuse or contribute to the project.
