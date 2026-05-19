@@ -142,7 +142,7 @@ def lookup_upc(upc: str) -> dict | None:
     """Look up a UPC/barcode through a chain of sources.
 
     Chain order (first hit wins):
-      1. Open Food Facts — free, unlimited, best for food/grocery products.
+      1. Open Food Facts — free, unlimited; best coverage for food/grocery but usable for any product.
       2. Go-UPC (go-upc.com) — broad catalog; requires GO_UPC_API_KEY env var (~150 req/month free).
       3. UPCitemdb — 100 lookups/day free tier, covers broad retail categories.
       4. barcodelookup.com — broad retail catalog; requires BARCODELOOKUP_API_KEY env var.
