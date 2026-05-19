@@ -155,7 +155,7 @@ The app generates GS1-style Code128 labels sized for reliable retail printing.
 
 Online lookup tries each source in order and returns the first result found:
 
-1. **Open Food Facts** — free, unlimited, best for food/grocery products
+1. **Open Food Facts** — free, unlimited; broad coverage across all product types (strongest for food/grocery)
 2. **Go-UPC** (go-upc.com) — broad retail catalog; set the `GO_UPC_API_KEY` environment variable with your API key from [go-upc.com](https://go-upc.com) (~150 requests/month free)
 3. **UPCitemdb** — 100 lookups/day on the free tier, broad retail coverage
 4. **barcodelookup.com** — broad retail catalog; set the `BARCODELOOKUP_API_KEY` environment variable with your API key from [barcodelookup.com/api](https://www.barcodelookup.com/api)

@@ -104,7 +104,7 @@ class MainWindow(QMainWindow):
         self.lookup_btn.setObjectName("lookup_btn")
         self.lookup_btn.setEnabled(False)
         self.lookup_btn.setToolTip(
-            "Search Open Food Facts (free/unlimited), Go-UPC (set GO_UPC_API_KEY),\n"
+            "Search online product databases: Open Food Facts (free/unlimited), Go-UPC (set GO_UPC_API_KEY),\n"
             "UPCitemdb (100/day), then barcodelookup.com (set BARCODELOOKUP_API_KEY)"
         )
         self.lookup_btn.clicked.connect(self._lookup_online)
@@ -313,7 +313,7 @@ class MainWindow(QMainWindow):
             self._current_barcode = barcode  # keep for lookup_online
             self.lookup_btn.setEnabled(True)
             self._set_status(
-                f"Not in file: {barcode}  —  click 'Look Up Online' to search Open Food Facts / UPCitemdb.",
+                f"Not in file: {barcode}  —  click 'Look Up Online' to search online product sources.",
                 "orange",
             )
             return
