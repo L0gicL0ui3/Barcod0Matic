@@ -1,7 +1,7 @@
 import os
 from datetime import datetime
 
-from PyQt6.QtCore import Qt, QTimer
+from PyQt6.QtCore import Qt, QTimer, QStringListModel
 from PyQt6.QtGui import QIcon, QKeySequence, QShortcut
 from PyQt6.QtWidgets import (
     QFileDialog,
@@ -15,6 +15,7 @@ from PyQt6.QtWidgets import (
     QMainWindow,
     QMessageBox,
     QPushButton,
+    QCompleter,
     QScrollArea,
     QVBoxLayout,
     QWidget,
@@ -34,7 +35,16 @@ class MainWindow(QMainWindow):
         self.df = None
         self.file_path = None
         self._current_barcode = ""
+        self._search_records = []
+        self._search_display_to_barcode = {}
+        self._search_model = QStringListModel(self)
+        self._search_completer = QCompleter(self._search_model, self)
+        self._search_completer.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
+        self._search_completer.setFilterMode(Qt.MatchFlag.MatchContains)
+        self._search_completer.setCompletionMode(QCompleter.CompletionMode.PopupCompletion)
+        self._search_completer.activated[str].connect(self._apply_search_completion)
         self._build_ui()
+        self.barcode_input.setCompleter(self._search_completer)
         # Set window icon so it shows in the taskbar and title bar
         _here = os.path.dirname(os.path.abspath(__file__))
         _ico = os.path.join(_here, "icon.ico")
@@ -95,7 +105,7 @@ class MainWindow(QMainWindow):
         scan_layout = QFormLayout(scan_group)
         scan_layout.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.ExpandingFieldsGrow)
         self.barcode_input = QLineEdit()
-        self.barcode_input.setPlaceholderText("Scan or type barcode, then press Enter")
+        self.barcode_input.setPlaceholderText("Scan barcode or type barcode / product name")
         self.barcode_input.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         self.barcode_input.setClearButtonEnabled(True)
         self.barcode_input.returnPressed.connect(self._on_barcode_entered)
@@ -240,6 +250,112 @@ class MainWindow(QMainWindow):
         else:
             self._status_timer.stop()
 
+    @staticmethod
+    def _clean_text(value) -> str:
+        text = str(value).strip()
+        return "" if text.lower() == "nan" else text
+
+    def _update_search_index(self):
+        records = []
+        suggestions = []
+        self._search_display_to_barcode = {}
+
+        if self.df is not None and "Column1" in self.df.columns:
+            for _, row in self.df.iterrows():
+                barcode = self._clean_text(row.get("Column1", ""))
+                if not barcode:
+                    continue
+                goal = self._clean_text(row.get("Goal", ""))
+                internal_id = self._clean_text(row.get("Correct approach", ""))
+                display = f"{barcode} — {goal}" if goal else barcode
+                if internal_id:
+                    display = f"{display} ({internal_id})"
+                records.append(
+                    {
+                        "barcode": barcode,
+                        "goal": goal,
+                        "display": display,
+                        "search_text": " ".join(part for part in (barcode, goal, internal_id) if part).casefold(),
+                    }
+                )
+                suggestions.append(display)
+                self._search_display_to_barcode[display] = barcode
+
+        self._search_records = records
+        self._search_model.setStringList(suggestions)
+
+    def _resolve_search_text(self, text: str) -> tuple[str | None, int]:
+        text = text.strip()
+        if not text:
+            return None, 0
+
+        normalized = text.casefold()
+        barcode_match = next((record["barcode"] for record in self._search_records if record["barcode"] == text), None)
+        if barcode_match:
+            return barcode_match, 1
+
+        exact_matches = list(
+            dict.fromkeys(
+                record["barcode"]
+                for record in self._search_records
+                if record["goal"].casefold() == normalized or record["display"].casefold() == normalized
+            )
+        )
+        if len(exact_matches) == 1:
+            return exact_matches[0], 1
+        if len(exact_matches) > 1:
+            return None, len(exact_matches)
+
+        partial_matches = list(
+            dict.fromkeys(
+                record["barcode"]
+                for record in self._search_records
+                if normalized in record["search_text"]
+            )
+        )
+        if len(partial_matches) == 1:
+            return partial_matches[0], 1
+        return None, len(partial_matches)
+
+    def _show_record(self, barcode: str, *, focus_editor: bool):
+        idx = dh.find_by_barcode(self.df, barcode)
+        if idx is None:
+            return
+
+        self._current_barcode = barcode
+        row = self.df.loc[idx]
+        self.lbl_goal.setText(str(row.get("Goal", "—")))
+        self.lbl_current_id.setText(str(row.get("Correct approach", "—")))
+        self.lbl_barcode_matched.setText(str(row.get("Column1", barcode)))
+        price_val = str(row.get("Price", "")) if "Price" in self.df.columns else ""
+        self.lbl_price.setText(price_val if price_val and price_val != "nan" else "—")
+        self.save_btn.setEnabled(True)
+        self.print_btn.setEnabled(True)
+        self.lookup_btn.setEnabled(False)
+        self.new_id_input.setEnabled(True)
+        self.new_goal_input.setEnabled(True)
+        self.new_price_input.setEnabled(True)
+        self.new_goal_input.setText(str(row.get("Goal", "")))
+        self.new_price_input.setText(price_val if price_val and price_val != "nan" else "")
+        prefix = self.prefix_input.text().strip()
+        self.new_id_input.setText(f"{prefix}{barcode}")
+
+        if focus_editor:
+            self.new_id_input.selectAll()
+            self.new_id_input.setFocus()
+
+        self._set_status(
+            "Record found. Edit product name, price and/or internal ID, then Save Changes.",
+            "blue",
+        )
+
+    def _apply_search_completion(self, display: str):
+        barcode = self._search_display_to_barcode.get(display)
+        if not barcode or self.df is None:
+            return
+        self.barcode_input.setText(barcode)
+        self._show_record(barcode, focus_editor=True)
+
     def _clear_match(self):
         self.lbl_goal.setText("—")
         self.lbl_current_id.setText("—")
@@ -265,6 +381,7 @@ class MainWindow(QMainWindow):
         try:
             self.df = dh.load_file(path)
             self.file_path = path
+            self._update_search_index()
             self.file_label.setText(path)
             self._set_status(
                 f"Loaded {len(self.df)} rows. Scan or type a barcode to look up a record.",
@@ -286,6 +403,7 @@ class MainWindow(QMainWindow):
         try:
             self.df = dh.load_file(path)
             self.file_path = path
+            self._update_search_index()
             self.file_label.setText(path)
             self._set_status(
                 f"Loaded {len(self.df)} rows. Scan or type a barcode to look up a record.",
@@ -298,47 +416,33 @@ class MainWindow(QMainWindow):
         self.barcode_input.setFocus()
 
     def _on_barcode_entered(self):
-        barcode = self.barcode_input.text().strip()
-        if not barcode:
+        query = self.barcode_input.text().strip()
+        if not query:
             return
         if self.df is None:
             self._set_status("No file loaded. Click Browse first.", "orange")
             return
-        idx = dh.find_by_barcode(self.df, barcode)
-        if idx is None:
+
+        barcode, match_count = self._resolve_search_text(query)
+        if barcode is None:
             self._clear_match()
-            self._current_barcode = barcode  # keep for lookup_online
-            self.lookup_btn.setEnabled(True)
-            self._set_status(
-                f"Not in file: {barcode}  —  click 'Look Up Online' to search Open Food Facts / UPCitemdb.",
-                "orange",
-            )
+            if query.isdigit():
+                self._current_barcode = query
+                self.lookup_btn.setEnabled(True)
+                self._set_status(
+                    f"Not in file: {query}  —  click 'Look Up Online' to search Open Food Facts / UPCitemdb.",
+                    "orange",
+                )
+            elif match_count > 1:
+                self._set_status(
+                    f"{match_count} matching products found. Keep typing or choose one from the suggestions.",
+                    "orange",
+                )
+            else:
+                self._set_status(f"No local product match found for '{query}'.", "orange")
             return
-        self._current_barcode = barcode
-        row = self.df.loc[idx]
-        self.lbl_goal.setText(str(row.get("Goal", "—")))
-        self.lbl_current_id.setText(str(row.get("Correct approach", "—")))
-        self.lbl_barcode_matched.setText(str(row.get("Column1", barcode)))
-        price_val = str(row.get("Price", "")) if "Price" in self.df.columns else ""
-        self.lbl_price.setText(price_val if price_val and price_val != "nan" else "—")
-        self.save_btn.setEnabled(True)
-        self.print_btn.setEnabled(True)
-        self.lookup_btn.setEnabled(False)
-        self.new_id_input.setEnabled(True)
-        self.new_goal_input.setEnabled(True)
-        self.new_price_input.setEnabled(True)
-        # Auto-fill fields from matched record
-        self.new_goal_input.setText(str(row.get("Goal", "")))
-        self.new_price_input.setText(price_val if price_val and price_val != "nan" else "")
-        # Auto-fill new ID as prefix + barcode
-        prefix = self.prefix_input.text().strip()
-        self.new_id_input.setText(f"{prefix}{barcode}")
-        self.new_id_input.selectAll()  # selected so user can type over it instantly
-        self.new_id_input.setFocus()
-        self._set_status(
-            "Record found. Edit product name, price and/or internal ID, then Save Changes.",
-            "blue",
-        )
+        self.barcode_input.setText(barcode)
+        self._show_record(barcode, focus_editor=True)
 
     def _save_change(self):
         if self.df is None:
@@ -417,6 +521,7 @@ class MainWindow(QMainWindow):
         self.lbl_goal.setText(new_goal)
         self.lbl_current_id.setText(new_id)
         self.lbl_price.setText(new_price or "—")
+        self._update_search_index()
         self._set_status(f"Saved changes for {self._current_barcode}", "green")
         self.barcode_input.clear()
         self.new_id_input.clear()
@@ -488,6 +593,7 @@ class MainWindow(QMainWindow):
         new_id = f"ITEM-{max_n + 1:04d}"
 
         self.df = dh.add_row(self.df, barcode, display, new_id)
+        self._update_search_index()
         try:
             dh.save_file(self.df, self.file_path)
         except FileLockError as exc:
