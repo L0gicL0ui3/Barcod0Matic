@@ -24,3 +24,8 @@ barcode_*/
 # OS
 Thumbs.db
 .DS_Store
+
+# .NET build outputs
+**/bin/
+**/obj/
+artifacts/
