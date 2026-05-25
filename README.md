@@ -6,7 +6,7 @@ BarcodOmatic is a desktop barcode and internal ID management app built with Pyth
 
 - Scan or type a barcode to find a matching record in a CSV or Excel file
 - Edit product name, internal ID, and price
-- Look up unknown barcodes online using Open Food Facts, with UPCitemdb as fallback
+- Look up unknown barcodes online using Open Food Facts, with UPCitemdb as fallback, and NuGet as a final fallback for software packages
 - Add newly found online products into your data file
 - Generate and print GS1-sized Code128 barcode labels
 - Auto-load a default file from `UPCDirectory/UPCdata.csv`
@@ -158,8 +158,9 @@ Online lookup depends on:
 - Internet access
 - Open Food Facts availability
 - UPCitemdb availability for fallback requests
+- NuGet availability for .NET software package lookups
 
-If both services return no result, the barcode will not be auto-added from online lookup.
+If all three services return no result, the barcode will not be auto-added from online lookup.
 
 ## How to Use
 
@@ -202,6 +203,7 @@ If the spreadsheet is open in Excel, VS Code, or another tool, Windows may lock 
 - Check internet access
 - The external service may not have that barcode
 - UPCitemdb may be rate-limited on trial endpoints
+- For NuGet lookups, ensure the package ID or search term matches a real package on nuget.org
 
 ## Best Results Checklist
 
